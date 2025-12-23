@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     
     # Sync Configuration
     sync_interval_minutes: int = 30
-    max_articles_per_sync: int = 100
+    max_articles_per_sync: int = 500
     enable_auto_sync: bool = True
     
     # Content Processing
