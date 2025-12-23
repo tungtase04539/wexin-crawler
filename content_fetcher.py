@@ -217,12 +217,16 @@ class ContentFetcher:
     
     def _extract_text(self, element) -> str:
         """Extract clean text from HTML element"""
+        import copy
+        # Work on a copy to avoid decomposing elements needed later (like iframes for videos)
+        temp_element = BeautifulSoup(str(element), 'html.parser')
+        
         # Remove script and style elements
-        for script in element(['script', 'style', 'iframe']):
+        for script in temp_element(['script', 'style', 'iframe', 'video']):
             script.decompose()
         
         # Get text
-        text = element.get_text(separator='\n')
+        text = temp_element.get_text(separator='\n')
         
         # Clean up whitespace
         lines = [line.strip() for line in text.splitlines()]
@@ -281,13 +285,13 @@ class ContentFetcher:
         
         # Look for video tags
         for video in element.find_all('video'):
-            video_url = video.get('src')
+            video_url = video.get('data-src') or video.get('src')
             
             if not video_url:
                 # Check source tags
                 source = video.find('source')
                 if source:
-                    video_url = source.get('src')
+                    video_url = source.get('data-src') or source.get('src')
             
             if video_url:
                 video_url = urljoin(base_url, video_url)
@@ -299,10 +303,19 @@ class ContentFetcher:
         
         # Look for iframe embeds (common for WeChat videos)
         for iframe in element.find_all('iframe'):
-            iframe_src = iframe.get('src', '')
-            if 'video' in iframe_src.lower() or 'v.qq.com' in iframe_src:
+            # Check both src and data-src
+            iframe_src = iframe.get('data-src') or iframe.get('src', '')
+            
+            is_video = (
+                'video' in iframe_src.lower() or 
+                'v.qq.com' in iframe_src or 
+                'mp.weixin.qq.com/mp/videoplayer' in iframe_src or
+                iframe.get('class') and any('video' in c.lower() for c in iframe.get('class'))
+            )
+            
+            if is_video and iframe_src:
                 videos.append({
-                    'url': iframe_src,
+                    'url': urljoin(base_url, iframe_src),
                     'poster': '',
                     'type': 'iframe'
                 })
