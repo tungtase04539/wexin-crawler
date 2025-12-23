@@ -214,7 +214,7 @@
                     const response = await fetch(`/api/sync/${feedId}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ full_sync: false })
+                        body: JSON.stringify({ full_sync: true })
                     });
                     const data = await response.json();
 
