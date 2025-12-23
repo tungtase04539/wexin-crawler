@@ -23,6 +23,7 @@ class SimpleCache:
         
         Args:
             cache_dir: Directory to store cache files
+        """
         if settings.is_vercel:
             cache_dir = "/tmp/.cache"
             
