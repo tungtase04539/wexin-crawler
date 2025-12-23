@@ -138,6 +138,9 @@ class ContentFetcher:
                 # Optionally remove data-src to clean up
                 del img['data-src']
         
+        # Extract videos
+        videos = self._extract_videos(content_div, base_url)
+        
         # Get HTML (cleaned)
         content_html = str(content_div)
         
