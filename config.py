@@ -105,31 +105,49 @@ class Settings(BaseSettings):
         return Path(__file__).parent
     
     @property
+    def is_vercel(self) -> bool:
+        """Check if running on Vercel"""
+        import os
+        return bool(os.environ.get("VERCEL"))
+
+    @property
     def data_dir(self) -> Path:
         """Get data directory"""
-        path = self.base_dir / "data"
-        path.mkdir(exist_ok=True)
+        if self.is_vercel:
+            path = Path("/tmp/data")
+        else:
+            path = self.base_dir / "data"
+        path.mkdir(parents=True, exist_ok=True)
         return path
     
     @property
     def images_dir(self) -> Path:
         """Get images directory"""
-        path = self.base_dir / self.image_storage_path
+        if self.is_vercel:
+            path = Path("/tmp/data/images")
+        else:
+            path = self.base_dir / self.image_storage_path
         path.mkdir(parents=True, exist_ok=True)
         return path
     
     @property
     def exports_dir(self) -> Path:
         """Get exports directory"""
-        path = self.base_dir / self.export_path
-        path.mkdir(exist_ok=True)
+        if self.is_vercel:
+            path = Path("/tmp/exports")
+        else:
+            path = self.base_dir / self.export_path
+        path.mkdir(parents=True, exist_ok=True)
         return path
     
     @property
     def logs_dir(self) -> Path:
         """Get logs directory"""
-        path = self.base_dir / "logs"
-        path.mkdir(exist_ok=True)
+        if self.is_vercel:
+            path = Path("/tmp/logs")
+        else:
+            path = self.base_dir / "logs"
+        path.mkdir(parents=True, exist_ok=True)
         return path
     
     def get_feed_url(self, feed_id: str, format: str = "json") -> str:
