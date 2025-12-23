@@ -1,6 +1,5 @@
 
 import asyncio
-from playwright.async_api import async_playwright
 from pathlib import Path
 from config import settings
 from logger import setup_logger
@@ -34,6 +33,7 @@ class PDFService:
             </html>
             """
             
+            from playwright.async_api import async_playwright
             async with async_playwright() as p:
                 browser = await p.chromium.launch()
                 page = await browser.new_page()
