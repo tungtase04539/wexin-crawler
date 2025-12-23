@@ -23,9 +23,16 @@ class SimpleCache:
         
         Args:
             cache_dir: Directory to store cache files
-        """
+        if settings.is_vercel:
+            cache_dir = "/tmp/.cache"
+            
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            # Fallback to disable cache if mkdir fails
+            logger.warning(f"Failed to create cache dir {cache_dir}: {e}")
+            settings.enable_cache = False
         self.ttl = settings.cache_ttl_seconds
         self.enabled = settings.enable_cache
     
