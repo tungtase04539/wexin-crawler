@@ -145,7 +145,21 @@ class ContentFetcher:
         # Extract videos
         videos = self._extract_videos(content_div, base_url)
         
-        # Process video iframes
+        # Process video iframes and video_iframe spans
+        # WeChat often uses a span with class "video_iframe" as a placeholder
+        for span in content_div.find_all('span', class_='video_iframe'):
+            vid = span.get('vid') or span.get('data-mpvid')
+            if vid:
+                # Create a proper player iframe
+                player_url = f"https://mp.weixin.qq.com/mp/videoplayer?vid={vid}&auto=0"
+                iframe = soup.new_tag('iframe')
+                iframe['src'] = player_url
+                iframe['class'] = 'video_iframe'
+                iframe['style'] = 'width: 100%; height: 250px; border:0; margin: 10px 0;'
+                iframe['referrerpolicy'] = 'no-referrer'
+                iframe['allowfullscreen'] = 'true'
+                span.replace_with(iframe)
+
         for iframe in content_div.find_all('iframe'):
             # WeChat uses data-src for iframes too
             actual_iframe_src = iframe.get('data-src') or iframe.get('src')
@@ -162,6 +176,10 @@ class ContentFetcher:
             iframe['style'] = f"{existing_iframe_style}; max-width: 100%;".strip('; ')
             if not iframe.get('width'):
                 iframe['width'] = "100%"
+            
+            # Fix height for videos if missing
+            if 'video' in iframe['src'] and 'height' not in iframe['style'].lower() and not iframe.get('height'):
+                 iframe['style'] = iframe['style'] + "; height: 300px;"
 
         # Get HTML (wrapped in a full document for the iframe)
         # This is critical for the "no-referrer" meta tag to work inside the iframe srcdoc
@@ -283,12 +301,23 @@ class ContentFetcher:
         """
         videos = []
         
-        # Look for video tags
+        # 1. Look for WeChat's specific video_iframe spans
+        for span in element.find_all('span', class_='video_iframe'):
+            vid = span.get('vid') or span.get('data-mpvid')
+            if vid:
+                player_url = f"https://mp.weixin.qq.com/mp/videoplayer?vid={vid}&auto=0"
+                videos.append({
+                    'url': player_url,
+                    'poster': '',
+                    'type': 'wechat_vid',
+                    'vid': vid
+                })
+
+        # 2. Look for video tags
         for video in element.find_all('video'):
             video_url = video.get('data-src') or video.get('src')
             
             if not video_url:
-                # Check source tags
                 source = video.find('source')
                 if source:
                     video_url = source.get('data-src') or source.get('src')
@@ -301,9 +330,8 @@ class ContentFetcher:
                     'type': 'video'
                 })
         
-        # Look for iframe embeds (common for WeChat videos)
+        # 3. Look for iframe embeds
         for iframe in element.find_all('iframe'):
-            # Check both src and data-src
             iframe_src = iframe.get('data-src') or iframe.get('src', '')
             
             is_video = (
