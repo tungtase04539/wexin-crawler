@@ -360,33 +360,31 @@ def api_articles():
             if not search and not tag and min_heat is None and min_engagement is None:
                 stmt = stmt.offset(offset).limit(limit)
             
-            articles = list(session.scalars(stmt).all())
+            articles = session.scalars(stmt).all()
         
-        # Filter by search if provided (already handled in SQL now for better performance)
-        
-        articles_data = []
-        for article in articles:
-            articles_data.append({
-                'id': article.id,
-                'title': article.title,
-                'author': article.author,
-                'url': article.url,
-                'summary': article.summary,
-                'ai_summary': article.ai_summary,
-                'tags': article.tags,
-                'cover_image': article.cover_image,
-                'published_at': article.published_at.isoformat() if article.published_at else None,
-                'word_count': article.word_count,
-                'reading_time_minutes': article.reading_time_minutes,
-                'is_read': article.is_read,
-                'is_favorite': article.is_favorite,
-                'created_at': article.created_at.isoformat(),
-                # Include scores for the list view
-                'heat_score': round(article.heat_score or 0, 1),
-                'engagement_rate': round(article.engagement_rate or 0, 1),
-                'is_simulated': article.is_simulated,
-                'has_api_key': bool(settings.jizhile_api_key)
-            })
+            articles_data = []
+            for article in articles:
+                articles_data.append({
+                    'id': article.id,
+                    'title': article.title,
+                    'author': article.author,
+                    'url': article.url,
+                    'summary': article.summary,
+                    'ai_summary': article.ai_summary,
+                    'tags': article.tags,
+                    'cover_image': article.cover_image,
+                    'published_at': article.published_at.isoformat() if article.published_at else None,
+                    'word_count': article.word_count,
+                    'reading_time_minutes': article.reading_time_minutes,
+                    'is_read': article.is_read,
+                    'is_favorite': article.is_favorite,
+                    'created_at': article.created_at.isoformat(),
+                    # Include scores for the list view
+                    'heat_score': round(article.heat_score or 0, 1),
+                    'engagement_rate': round(article.engagement_rate or 0, 1),
+                    'is_simulated': article.is_simulated,
+                    'has_api_key': bool(settings.jizhile_api_key)
+                })
         
         return jsonify({
             'success': True,
@@ -394,8 +392,14 @@ def api_articles():
             'total': len(articles_data)
         })
     except Exception as e:
-        logger.error(f"Failed to get articles: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        error_tb = traceback.format_exc()
+        logger.error(f"Failed to get articles: {e}\n{error_tb}")
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'traceback': error_tb if settings.debug else None
+        }), 500
 
 
 @app.route('/api/articles/<int:article_id>')
