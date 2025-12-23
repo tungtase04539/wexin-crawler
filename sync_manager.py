@@ -1,8 +1,9 @@
 """
 Sync manager for orchestrating content synchronization
 """
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 from config import settings
 from logger import setup_logger
@@ -85,8 +86,10 @@ class SyncManager:
                 "skipped": 0
             }
             
-            # Process each entry
-            for entry in entries:
+            # Thread-safe stats lock
+            stats_lock = threading.Lock()
+            
+            def process_wrapper(entry):
                 try:
                     # Process entry
                     article_data = content_processor.process_article(entry)
@@ -101,13 +104,15 @@ class SyncManager:
                     if existing_article:
                         # Skip if not full sync
                         if not full_sync:
-                            stats["skipped"] += 1
-                            continue
+                            with stats_lock:
+                                stats["skipped"] += 1
+                            return
                         
                         # Update existing article if full_sync is enabled
                         db.update_article(existing_article.id, **article_data)
                         article_id = existing_article.id
-                        stats["updated"] += 1
+                        with stats_lock:
+                            stats["updated"] += 1
                         logger.debug(f"Updated article: {article_data['title'][:50]}")
                     else:
                         # Create new article
@@ -116,7 +121,8 @@ class SyncManager:
                             **article_data
                         )
                         article_id = article.id
-                        stats["new"] += 1
+                        with stats_lock:
+                            stats["new"] += 1
                         logger.debug(f"Created new article: {article_data['title'][:50]}")
                     
                     # Calculate scores for all processed articles (new or updated)
@@ -139,7 +145,15 @@ class SyncManager:
                 
                 except Exception as e:
                     logger.error(f"Failed to process entry: {e}")
-                    stats["failed"] += 1
+                    with stats_lock:
+                        stats["failed"] += 1
+
+            # Use ThreadPoolExecutor for parallel processing (limit to 5 to avoid overloading/blocking)
+            max_workers = 5
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(process_wrapper, entry) for entry in entries]
+                for future in as_completed(futures):
+                    future.result()  # Handle exceptions if any
             
             # Update sync history
             db.update_sync_history(

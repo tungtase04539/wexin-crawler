@@ -110,6 +110,65 @@ class Database:
             if active_only:
                 stmt = stmt.where(Account.is_active == True)
             return list(session.scalars(stmt).all())
+            
+    def get_accounts_with_summary(self, active_only: bool = False) -> List[dict]:
+        """
+        Get all accounts with article counts and latest sync info in an optimized way
+        """
+        from sqlalchemy import select, func, and_
+        
+        with self.get_session() as session:
+            # 1. Get account details and article counts
+            count_stmt = (
+                select(
+                    Account,
+                    func.count(Article.id).label('articles_count')
+                )
+                .outerjoin(Article, Account.id == Article.account_id)
+                .group_by(Account.id)
+            )
+            
+            if active_only:
+                count_stmt = count_stmt.where(Account.is_active == True)
+                
+            results = session.execute(count_stmt).all()
+            
+            # 2. Get latest sync for each account
+            # Subquery to get latest sync ID per account
+            latest_sync_sid = (
+                select(
+                    SyncHistory.account_id,
+                    func.max(SyncHistory.started_at).label('max_start')
+                )
+                .group_by(SyncHistory.account_id)
+                .subquery()
+            )
+            
+            latest_sync_stmt = (
+                select(SyncHistory)
+                .join(
+                    latest_sync_sid,
+                    and_(
+                        SyncHistory.account_id == latest_sync_sid.c.account_id,
+                        SyncHistory.started_at == latest_sync_sid.c.max_start
+                    )
+                )
+            )
+            
+            syncs = session.scalars(latest_sync_stmt).all()
+            sync_map = {s.account_id: s for s in syncs}
+            
+            # Merge results
+            summary = []
+            for account, count in results:
+                ls = sync_map.get(account.id)
+                summary.append({
+                    'account': account,
+                    'articles_count': count,
+                    'latest_sync': ls
+                })
+                
+            return summary
     
     def update_account(self, account_id: int, **kwargs) -> Optional[Account]:
         """Update account fields"""

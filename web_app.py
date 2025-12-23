@@ -113,14 +113,15 @@ def api_stats():
 
 @app.route('/api/accounts')
 def api_accounts():
-    """Get all accounts"""
+    """Get all accounts with summary info (optimized)"""
     try:
-        accounts = db.get_all_accounts(active_only=False)
+        # Use optimized batch query to avoid N+1 problem
+        summary = db.get_accounts_with_summary(active_only=False)
         
         accounts_data = []
-        for account in accounts:
-            articles_count = len(db.get_articles_by_account(account.id))
-            latest_sync = db.get_latest_sync(account.id)
+        for item in summary:
+            account = item['account']
+            latest_sync = item['latest_sync']
             
             accounts_data.append({
                 'id': account.id,
@@ -129,7 +130,7 @@ def api_accounts():
                 'description': account.description,
                 'avatar_url': account.avatar_url,
                 'is_active': account.is_active,
-                'articles_count': articles_count,
+                'articles_count': item['articles_count'],
                 'created_at': account.created_at.isoformat() + 'Z',
                 'updated_at': account.updated_at.isoformat() + 'Z',
                 'last_sync': latest_sync.started_at.isoformat() + 'Z' if latest_sync else None,
