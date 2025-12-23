@@ -83,7 +83,7 @@ class ContentFetcher:
         Returns:
             Parsed content dictionary
         """
-        soup = BeautifulSoup(html, 'lxml')
+        soup = BeautifulSoup(html, 'html.parser')
         
         # Extract article content
         # WeChat articles typically use id="js_content"

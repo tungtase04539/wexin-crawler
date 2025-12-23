@@ -7,15 +7,22 @@ from datetime import datetime, timedelta
 import json
 from pathlib import Path
 
-from config import settings
-from database import db
-from sync_manager import sync_manager
-from wewe_client import wewe_client
-from metrics_fetcher import metrics_fetcher
-from pdf_service import pdf_service
-from logger import setup_logger
-
-logger = setup_logger(__name__)
+try:
+    from config import settings
+    from database import db
+    from sync_manager import sync_manager
+    from wewe_client import wewe_client
+    from metrics_fetcher import metrics_fetcher
+    from pdf_service import pdf_service
+    from logger import setup_logger
+    logger = setup_logger(__name__)
+except Exception as e:
+    import traceback
+    import sys
+    print("CRITICAL: Failed to import internal modules!", file=sys.stderr)
+    traceback.print_exc()
+    # Re-raise to let Vercel handle the crash but now we have logs
+    raise e
 
 # Initialize Flask app
 app = Flask(__name__)
