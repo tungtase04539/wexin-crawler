@@ -306,8 +306,7 @@ def api_articles():
                     Article.summary.ilike(f"%{search}%")
                 ))
             if tag:
-                from sqlalchemy import cast, String
-                filters.append(cast(Article.tags, String).like(f'%"%s"%' % tag))
+                filters.append(Article.tags.contains([tag]))
             
             if categorized is not None:
                 from sqlalchemy import cast, String

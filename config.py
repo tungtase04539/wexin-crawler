@@ -109,7 +109,7 @@ class Settings(BaseSettings):
     
     # Rate Limiting
     max_requests_per_minute: int = 30
-    debug: bool = True
+    debug: bool = False
     
     @property
     def base_dir(self) -> Path:
