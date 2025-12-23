@@ -42,20 +42,25 @@ class ContentProcessor:
             author_names = []
             for a in authors:
                 if isinstance(a, dict):
-                    author_names.append(a.get("name", "Unknown"))
+                    name = a.get("name")
+                    if name: author_names.append(name)
                 elif isinstance(a, str):
                     author_names.append(a)
             if author_names:
                 author = ", ".join(author_names)
         
-        if isinstance(author, dict):
-            author = author.get("name", "Unknown")
-        elif not isinstance(author, str):
-            author = str(author) if author else ""
+        if not author:
+            if isinstance(entry.get("author"), dict):
+                author = entry.get("author").get("name")
+            else:
+                author = entry.get("author")
         
-        if not author or author.lower() == "unknown":
-            # Try to get from feed_item level directly
-            author = entry.get("author_name", author)
+        # Last secondary fallbacks
+        if not author or str(author).lower() in ["unknown", "none", ""]:
+            author = entry.get("author_name") or entry.get("feed_title")
+        
+        if not author or str(author).lower() in ["unknown", "none", ""]:
+             author = "Unknown"
         
         # Handle URL - JSON feed uses 'url', RSS uses 'link'
         url = entry.get("url", "") or entry.get("link", "")

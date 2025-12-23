@@ -91,6 +91,10 @@ class SyncManager:
                     # Process entry
                     article_data = content_processor.process_article(entry)
                     
+                    # Ensure author fallback to account name if still unknown
+                    if not article_data.get("author") or article_data["author"].lower() == "unknown":
+                        article_data["author"] = account_name
+                    
                     # Check if article already exists
                     existing_article = db.get_article_by_url(article_data["url"])
                     
