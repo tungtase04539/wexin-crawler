@@ -117,36 +117,94 @@ class ContentFetcher:
         # Extract text content
         content_text = self._extract_text(content_div)
         
-        # Inject no-referrer meta tag to bypass WeChat anti-hotlinking
-        meta_tag = soup.new_tag('meta')
-        meta_tag.attrs['name'] = 'referrer'
-        meta_tag.attrs['content'] = 'no-referrer'
-        if soup.head:
-            soup.head.insert(0, meta_tag)
-        else:
-            head = soup.new_tag('head')
-            head.append(meta_tag)
-            soup.insert(0, head)
-
-        # Extract images
+        # Extract images and clean them for display
         images = self._extract_images(content_div, base_url)
         
-        # Convert lazy-load data-src to src
+        # Process all images in the HTML for reliable display
         for img in content_div.find_all('img'):
-            if img.get('data-src'):
-                img['src'] = img['data-src']
-                # Optionally remove data-src to clean up
-                del img['data-src']
-        
+            # 1. Handle lazy loading (data-src is very common in WeChat)
+            actual_src = img.get('data-src') or img.get('src')
+            if actual_src:
+                img['src'] = urljoin(base_url, actual_src)
+                # Remove data-src to prevent double loading or interference
+                if img.get('data-src'):
+                    del img['data-src']
+            
+            # 2. Bypass anti-hotlinking
+            img['referrerpolicy'] = 'no-referrer'
+            
+            # 3. Ensure responsive layout
+            existing_style = img.get('style', '')
+            if 'max-width' not in existing_style.lower():
+                img['style'] = f"{existing_style}; max-width: 100%; height: auto;".strip('; ')
+            
+            # 4. Remove visibility:hidden/opacity:0 that WeChat sometimes uses for lazy loading
+            if img.get('style'):
+                img['style'] = img['style'].replace('visibility: hidden', '').replace('opacity: 0', '')
+
         # Extract videos
         videos = self._extract_videos(content_div, base_url)
         
-        # Get HTML (cleaned)
-        content_html = str(content_div)
+        # Process video iframes
+        for iframe in content_div.find_all('iframe'):
+            # WeChat uses data-src for iframes too
+            actual_iframe_src = iframe.get('data-src') or iframe.get('src')
+            if actual_iframe_src:
+                iframe['src'] = urljoin(base_url, actual_iframe_src)
+                if iframe.get('data-src'):
+                    del iframe['data-src']
+            
+            # Anti-hotlinking for iframes
+            iframe['referrerpolicy'] = 'no-referrer'
+            
+            # Responsive width
+            existing_iframe_style = iframe.get('style', '')
+            iframe['style'] = f"{existing_iframe_style}; max-width: 100%;".strip('; ')
+            if not iframe.get('width'):
+                iframe['width'] = "100%"
+
+        # Get HTML (wrapped in a full document for the iframe)
+        # This is critical for the "no-referrer" meta tag to work inside the iframe srcdoc
+        inner_html = str(content_div)
         
-        # Strip WeChat's visibility:hidden and opacity:0
-        content_html = content_html.replace('visibility: hidden;', '')
-        content_html = content_html.replace('opacity: 0;', '')
+        # Cleanup remaining visibility/opacity issues
+        inner_html = inner_html.replace('visibility: hidden;', '')
+        inner_html = inner_html.replace('opacity: 0;', '')
+        inner_html = inner_html.replace('display: none!important;', '')
+        
+        content_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <style>
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }}
+        img {{ 
+            max-width: 100% !important; 
+            height: auto !important; 
+            display: block;
+            margin: 10px 0;
+        }}
+        iframe {{ 
+            max-width: 100% !important; 
+        }}
+        .rich_media_content {{
+            overflow: hidden;
+        }}
+        /* Hide some WeChat elements that might break layout */
+        .qr_code_pc_outer {{ display: none !important; }}
+    </style>
+</head>
+<body>
+    {inner_html}
+</body>
+</html>"""
         
         logger.info(f"Extracted: {len(content_text)} chars, {len(images)} images, {len(videos)} videos")
         
