@@ -95,10 +95,20 @@ class SyncManager:
                     existing_article = db.get_article_by_url(article_data["url"])
                     
                     if existing_article:
-                        # Skip if not full sync
-                        if not full_sync:
+                        # Check if we should force update (missing data)
+                        needs_fix = (
+                            not existing_article.author or 
+                            existing_article.author.lower() == "unknown" or
+                            not existing_article.content
+                        )
+                        
+                        # Skip if not full sync AND no fix needed
+                        if not full_sync and not needs_fix:
                             stats["skipped"] += 1
                             continue
+                        
+                        if needs_fix and not full_sync:
+                            logger.info(f"Re-fetching article with missing data: {existing_article.title[:50]}")
                         
                         # Update existing article
                         db.update_article(existing_article.id, **article_data)
