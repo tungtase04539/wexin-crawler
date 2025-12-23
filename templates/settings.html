@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt - Hệ thống Quản lý WeChat{% endblock %}
+{% block page_title %}Cài đặt{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+
+    <!-- System Information -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Thông tin hệ thống</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">WeWe-RSS URL</p>
+                <p class="font-medium text-gray-900 mt-1">http://localhost:4000</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">Cơ sở dữ liệu</p>
+                <p class="font-medium text-gray-900 mt-1">SQLite</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">Bộ nhớ đệm</p>
+                <p class="font-medium text-gray-900 mt-1">Bật (30 phút TTL)</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600">Giới hạn yêu cầu</p>
+                <p class="font-medium text-gray-900 mt-1">30 yêu cầu/phút</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Giới thiệu</h2>
+        <div class="space-y-3 text-sm text-gray-700">
+            <p><strong>Hệ thống Tích hợp Nội dung WeChat</strong></p>
+            <p>Phiên bản 1.0.0</p>
+            <p>Một hệ thống mạnh mẽ để thu thập, quản lý và xuất các bài viết từ tài khoản WeChat Official thông qua
+                WeWe-RSS.</p>
+
+            <div class="mt-6 pt-6 border-t">
+                <p class="font-medium mb-2">Tính năng:</p>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li>Quản lý đa tài khoản</li>
+                    <li>Đồng bộ nội dung tự động</li>
+                    <li>Bộ nhớ đệm thông minh và giới hạn yêu cầu</li>
+                    <li>Xuất dữ liệu sang JSON/CSV</li>
+                    <li>Giao diện web hiện đại</li>
+                    <li>Tóm tắt và gắn Tag bằng AI (Gemini)</li>
+                </ul>
+            </div>
+
+            <div class="mt-6 pt-6 border-t">
+                <p class="font-medium mb-2">Technology Stack:</p>
+                <ul class="list-disc list-inside space-y-1 text-gray-600">
+                    <li>Backend: Flask + SQLAlchemy</li>
+                    <li>Frontend: HTMX + Alpine.js + TailwindCSS</li>
+                    <li>Database: SQLite</li>
+                    <li>Integration: WeWe-RSS</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

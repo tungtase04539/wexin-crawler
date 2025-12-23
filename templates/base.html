@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hệ thống Quản lý Nội dung WeChat{% endblock %}</title>
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Heroicons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full bg-gray-50" x-data="{ sidebarOpen: false }">
+
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+
+        <!-- Logo -->
+        <div class="flex items-center justify-between h-16 px-6 gradient-bg">
+            <div class="flex items-center">
+                <i class="fas fa-rss text-white text-2xl mr-3"></i>
+                <span class="text-white font-bold text-lg">WeWe RSS</span>
+            </div>
+            <button @click="sidebarOpen = false" class="lg:hidden text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="mt-6 px-3">
+            <a href="/"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/' %}bg-gray-100 text-indigo-600{% endif %}">
+                <i class="fas fa-home w-5"></i>
+                <span class="ml-3">Tổng quan</span>
+            </a>
+
+            <a href="/accounts"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/accounts' %}bg-gray-100 text-indigo-600{% endif %}">
+                <i class="fas fa-users w-5"></i>
+                <span class="ml-3">Tài khoản</span>
+            </a>
+
+            <a href="/articles?categorized=0"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/articles' and request.args.get('categorized') == '0' %}bg-gray-100 text-indigo-600 font-semibold{% endif %}">
+                <i class="fas fa-inbox w-5"></i>
+                <span class="ml-3">Inbox</span>
+            </a>
+
+            <a href="/articles?categorized=1"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/articles' and request.args.get('categorized') == '1' %}bg-gray-100 text-indigo-600 font-semibold{% endif %}">
+                <i class="fas fa-check-double w-5"></i>
+                <span class="ml-3">Đã phân loại</span>
+            </a>
+
+            <a href="/sync"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/sync' %}bg-gray-100 text-indigo-600{% endif %}">
+                <i class="fas fa-sync w-5"></i>
+                <span class="ml-3">Đồng bộ</span>
+            </a>
+
+            <a href="/export"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/export' %}bg-gray-100 text-indigo-600{% endif %}">
+                <i class="fas fa-download w-5"></i>
+                <span class="ml-3">Xuất dữ liệu</span>
+            </a>
+
+            <a href="/settings"
+                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 mb-1 {% if request.path == '/settings' %}bg-gray-100 text-indigo-600{% endif %}">
+                <i class="fas fa-cog w-5"></i>
+                <span class="ml-3">Cài đặt</span>
+            </a>
+        </nav>
+
+        <!-- Footer -->
+        <div class="absolute bottom-0 w-full p-4 border-t">
+            <div class="text-xs text-gray-500 text-center">
+                <p>WeChat Integration v1.0</p>
+                <p class="mt-1">Powered by WeWe-RSS</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+        <!-- Top Bar -->
+        <div
+            class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+            <button @click="sidebarOpen = true" class="lg:hidden text-gray-700">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+
+            <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+                <div class="flex flex-1 items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">
+                        {% block page_title %}Tổng quan{% endblock %}
+                    </h1>
+                </div>
+
+                <div class="flex items-center gap-x-4 lg:gap-x-6">
+                    <!-- Notifications -->
+                    <button class="relative text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span
+                            class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">3</span>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center gap-x-2 text-sm">
+                            <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <main class="py-6 px-4 sm:px-6 lg:px-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2">
+        <!-- Toasts will be inserted here -->
+    </div>
+
+    <!-- Global Scripts -->
+    <script>
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+
+            toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in`;
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+
+            document.getElementById('toast-container').appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // HTMX event listeners
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.successful) {
+                const response = JSON.parse(event.detail.xhr.response);
+                if (response.success === false) {
+                    showToast(response.error || 'Operation failed', 'error');
+                }
+            } else {
+                showToast('Request failed', 'error');
+            }
+        });
+
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slide-in {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            .animate-slide-in {
+                animation: slide-in 0.3s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

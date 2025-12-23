@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}Bài viết - Hệ thống Quản lý WeChat{% endblock %}
+{% block page_title %}Trình duyệt bài viết{% endblock %}
+
+{% block content %}
+<div x-data="articles()" x-init="loadArticles()">
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <!-- Main Filters (Shared) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div class="md:col-span-1">
+                <input x-model="filters.search" @input="debounceSearch()" type="text" placeholder="Tìm kiếm bài viết..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+            </div>
+            <div>
+                <select x-model="filters.account_id" @change="loadArticles()"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <option value="">Tất cả tài khoản</option>
+                    <template x-for="account in accountsList" :key="account.id">
+                        <option :value="account.id" x-text="account.name"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <select x-model="filters.sort" @change="loadArticles()"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <option value="published_at_desc">Mới nhất</option>
+                    <option value="published_at_asc">Cũ nhất</option>
+                    <option value="heat_score">Nhiệt độ cao nhất</option>
+                    <option value="engagement_rate">Tương tác tốt nhất</option>
+                </select>
+            </div>
+            <div>
+                <select x-model="filters.limit" @change="loadArticles()"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <option value="20">20 bài/trang</option>
+                    <option value="50">50 bài/trang</option>
+                    <option value="100">100 bài/trang</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Advanced Button Filters -->
+        <div class="space-y-4 pt-4 border-t border-gray-100">
+            <!-- Tag Buttons (Only for Categorized View) -->
+            <template x-if="filters.categorized">
+                <div>
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Danh mục</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button @click="toggleTag('')"
+                            :class="filters.tag === '' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                            class="px-3 py-1.5 rounded-full text-xs font-medium transition"> Tất cả </button>
+                        <template x-for="tag in standardTags" :key="tag">
+                            <button @click="toggleTag(tag)"
+                                :class="filters.tag === tag ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                class="px-3 py-1.5 rounded-full text-xs font-medium transition" x-text="tag"></button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Heat Level Buttons -->
+                <div>
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Nhiệt độ (Heat)</div>
+                    <div class="flex gap-2">
+                        <button @click="filters.heat_level = ''; loadArticles()"
+                            :class="filters.heat_level === '' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Tất cả</button>
+                        <button @click="filters.heat_level = 'low'; loadArticles()"
+                            :class="filters.heat_level === 'low' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Thấp</button>
+                        <button @click="filters.heat_level = 'mid'; loadArticles()"
+                            :class="filters.heat_level === 'mid' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Trung bình</button>
+                        <button @click="filters.heat_level = 'high'; loadArticles()"
+                            :class="filters.heat_level === 'high' ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Cao</button>
+                    </div>
+                </div>
+
+                <!-- Engagement Level Buttons -->
+                <div>
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Tương tác</div>
+                    <div class="flex gap-2">
+                        <button @click="filters.engagement_level = ''; loadArticles()"
+                            :class="filters.engagement_level === '' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Tất cả</button>
+                        <button @click="filters.engagement_level = 'low'; loadArticles()"
+                            :class="filters.engagement_level === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Thấp</button>
+                        <button @click="filters.engagement_level = 'mid'; loadArticles()"
+                            :class="filters.engagement_level === 'mid' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Trung bình</button>
+                        <button @click="filters.engagement_level = 'high'; loadArticles()"
+                            :class="filters.engagement_level === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'"
+                            class="flex-1 py-2 rounded-lg text-xs font-bold transition">Cao</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles List -->
+    <div x-show="!loading && articlesList.length > 0" class="space-y-4">
+        <template x-for="article in articlesList" :key="article.id">
+            <div @click="viewArticle(article)"
+                class="bg-white rounded-lg shadow hover:shadow-lg transition p-6 cursor-pointer">
+                <div class="flex items-start gap-4">
+                    <!-- Cover Image -->
+                    <div x-show="article.cover_image" class="flex-shrink-0">
+                        <img :src="article.cover_image" class="w-32 h-24 object-cover rounded-lg" alt="">
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1" x-text="article.title"></h3>
+                        <div class="flex flex-wrap gap-2 mb-2" x-show="article.tags && article.tags.length > 0">
+                            <template x-for="tag in article.tags" :key="tag">
+                                <span :class="getTagClass(tag)"
+                                    class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" x-text="tag"></span>
+                            </template>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2" x-text="article.summary"></p>
+
+                        <div class="flex items-center gap-4 text-xs text-gray-500">
+                            <span :class="article.heat_score > 50 ? 'text-orange-600 font-bold' : ''">
+                                <i class="fas fa-fire mr-1"></i>
+                                <span x-text="article.heat_score || 0"></span>
+                            </span>
+                            <span><i class="fas fa-user mr-1"></i><span
+                                    x-text="article.author || 'Unknown'"></span></span>
+                            <span><i class="fas fa-calendar mr-1"></i><span
+                                    x-text="formatDate(article.published_at)"></span></span>
+                            <span><i class="fas fa-book mr-1"></i><span x-text="article.word_count || 0"></span>
+                                chữ</span>
+                            <span><i class="fas fa-clock mr-1"></i><span
+                                    x-text="article.reading_time_minutes || 0"></span> phút đọc</span>
+
+                            <span x-show="article.is_simulated"
+                                class="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase">
+                                MÔ PHỎNG
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex-shrink-0 flex gap-2">
+                        <button @click.stop="openUrl(article.url)" class="text-indigo-600 hover:text-indigo-800">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="loading" class="text-center py-12">
+        <i class="fas fa-spinner fa-spin text-gray-400 text-4xl"></i>
+        <p class="text-gray-600 mt-4">Loading articles...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && articlesList.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
+        <i class="fas fa-newspaper text-gray-300 text-6xl mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy bài viết nào</h3>
+        <p class="text-gray-600">Thử đồng bộ lại tài khoản hoặc đổi tiêu chí lọc</p>
+    </div>
+
+    <!-- Article Detail Modal -->
+    <div x-show="showDetailModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div @click="showDetailModal = false" class="fixed inset-0 bg-black bg-opacity-50"></div>
+
+            <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <!-- Header -->
+                <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-900" x-text="selectedArticle?.title"></h3>
+                    <div class="flex items-center gap-3">
+                        <button @click="downloadPDF(selectedArticle.id)"
+                            class="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button @click="showDetailModal = false" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <div class="flex items-center gap-4 text-sm text-gray-600 mb-6">
+                        <span><i class="fas fa-user mr-1"></i><span
+                                x-text="selectedArticle?.author || 'Unknown'"></span></span>
+                        <span><i class="fas fa-calendar mr-1"></i><span
+                                x-text="formatDate(selectedArticle?.published_at)"></span></span>
+                        <a :href="selectedArticle?.url" target="_blank" class="text-indigo-600 hover:text-indigo-800">
+                            <i class="fas fa-external-link-alt mr-1"></i>Original
+                        </a>
+                        <button @click="updateMetrics(selectedArticle.id)"
+                            class="text-xs text-indigo-600 hover:underline">
+                            <i class="fas fa-sync-alt mr-1"></i>Refresh Metrics
+                        </button>
+                        <button @click="summarizeArticle(selectedArticle.id)"
+                            class="text-xs text-purple-600 hover:underline">
+                            <i class="fas fa-magic mr-1"></i>Gemini Summarize
+                        </button>
+                        <button @click="syncToLark(selectedArticle.id)" class="text-xs text-blue-600 hover:underline">
+                            <i class="fas fa-cloud-upload-alt mr-1"></i>Push to Lark
+                        </button>
+                    </div>
+
+                    <!-- AI Summary & Tags Section -->
+                    <div x-show="selectedArticle?.ai_summary || selectedArticle?.generating_summary"
+                        class="mb-8 bg-purple-50 rounded-xl border border-purple-100 overflow-hidden shadow-sm">
+                        <div class="bg-purple-100 px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <span class="text-xs font-bold text-purple-700 uppercase flex items-center">
+                                    <i class="fas fa-robot mr-2"></i> Gemini AI
+                                </span>
+                                <!-- AI Tags in Summary Header -->
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="tag in selectedArticle?.tags || []" :key="tag">
+                                        <span :class="getTagClass(tag)"
+                                            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow-sm"
+                                            x-text="tag"></span>
+                                    </template>
+                                </div>
+                            </div>
+                            <div x-show="selectedArticle?.generating_summary" class="flex items-center">
+                                <i class="fas fa-spinner fa-spin text-purple-600 mr-2"></i>
+                                <span class="text-[10px] text-purple-600 font-medium">Đang xử lý...</span>
+                            </div>
+                        </div>
+                        <div class="p-5 prose prose-indigo prose-sm max-w-none text-purple-900 leading-relaxed"
+                            x-html="formatSummary(selectedArticle?.ai_summary)">
+                        </div>
+                    </div>
+
+                    <!-- Simulation Warning -->
+                    <div x-show="selectedArticle?.is_simulated" class="mb-4">
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        Dữ liệu này được <strong>mô phỏng</strong>.
+                                        <span x-show="!selectedArticle?.has_api_key">Cấu hình API Key hoặc nạp thêm số
+                                            dư
+                                            Jizhile để lấy dữ liệu thực tế.</span>
+                                        <span x-show="selectedArticle?.has_api_key">Hệ thống đã tự động chuyển sang chế
+                                            độ
+                                            mô phỏng do lỗi kết nối hoặc hết số dư API.</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scoring Indicators -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                            <div class="text-xs text-orange-600 font-bold uppercase mb-1">Điểm Nhiệt</div>
+                            <div class="text-2xl font-black text-orange-700" x-text="selectedArticle?.heat_score || 0">
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                            <div class="text-xs text-blue-600 font-bold uppercase mb-1">Tương Tác</div>
+                            <div class="text-2xl font-black text-blue-700"
+                                x-text="selectedArticle?.engagement_rate + '%' || '0%'"></div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                            <div class="text-xs text-green-600 font-bold uppercase mb-1">Lan Truyền</div>
+                            <div class="text-2xl font-black text-green-700"
+                                x-text="selectedArticle?.virality_index || 0"></div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                            <div class="text-xs text-purple-600 font-bold uppercase mb-1">Giá Trị</div>
+                            <div class="text-2xl font-black text-purple-700"
+                                x-text="selectedArticle?.content_value_index || 0"></div>
+                        </div>
+                    </div>
+
+                    <div class="prose max-w-none">
+                        <!-- Use iframe to isolate WeChat HTML styles -->
+                        <iframe x-show="selectedArticle?.content_html" :srcdoc="selectedArticle?.content_html"
+                            class="w-full border-0" style="min-height: 600px;" @load="resizeIframe($event.target)"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
+                            frameborder="0">
+                        </iframe>
+
+                        <!-- Fallback to plain text if no HTML -->
+                        <div x-show="!selectedArticle?.content_html && selectedArticle?.content"
+                            class="whitespace-pre-wrap text-gray-700" x-text="selectedArticle?.content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function articles() {
+        return {
+            articlesList: [],
+            accountsList: [],
+            loading: true,
+            showDetailModal: false,
+            selectedArticle: null,
+            standardTags: [
+                "AI & LLM", "Tự động hóa", "Công cụ & Tiện ích", "Lập trình & API",
+                "Marketing & Branding", "Sáng tạo nội dung", "Năng suất & Công việc",
+                "Kinh doanh & Khởi nghiệp", "Tin tức công nghệ", "Hướng dẫn & Thủ thuật"
+            ],
+            filters: {
+                search: '',
+                account_id: '',
+                tag: '',
+                categorized: new URLSearchParams(window.location.search).get('categorized') || '',
+                heat_level: '',
+                engagement_level: '',
+                min_heat: null,
+                min_engagement: null,
+                limit: 50,
+                sort: 'published_at_desc'
+            },
+            searchTimeout: null,
+
+            async init() {
+                await this.loadAccounts();
+                await this.loadArticles();
+            },
+
+            async loadAccounts() {
+                try {
+                    const response = await fetch('/api/accounts');
+                    const data = await response.json();
+                    if (data.success) {
+                        this.accountsList = data.accounts;
+                    }
+                } catch (error) {
+                    console.error('Failed to load accounts:', error);
+                }
+            },
+
+            async loadArticles() {
+                this.loading = true;
+                try {
+                    const params = new URLSearchParams({
+                        limit: this.filters.limit,
+                        sort: this.filters.sort,
+                        ...(this.filters.account_id && { account_id: this.filters.account_id }),
+                        ...(this.filters.search && { search: this.filters.search }),
+                        ...(this.filters.tag && { tag: this.filters.tag }),
+                        ...(this.filters.categorized && { categorized: this.filters.categorized }),
+                        ...(this.filters.heat_level && { heat_level: this.filters.heat_level }),
+                        ...(this.filters.engagement_level && { engagement_level: this.filters.engagement_level }),
+                        ...(this.filters.min_heat && { min_heat: this.filters.min_heat }),
+                        ...(this.filters.min_engagement && { min_engagement: this.filters.min_engagement })
+                    });
+
+                    const response = await fetch(`/api/articles?${params}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        this.articlesList = data.articles;
+                    }
+                } catch (error) {
+                    console.error('Failed to load articles:', error);
+                    showToast('Failed to load articles', 'error');
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            debounceSearch() {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.loadArticles();
+                }, 500);
+            },
+
+            async viewArticle(article) {
+                try {
+                    const response = await fetch(`/api/articles/${article.id}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        this.selectedArticle = data.article;
+                        this.showDetailModal = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to load article:', error);
+                }
+            },
+
+            async updateMetrics(articleId) {
+                try {
+                    showToast('Updating metrics...', 'info');
+                    const response = await fetch(`/api/articles/${articleId}/update-metrics`, { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update selected article scores
+                        this.selectedArticle.heat_score = data.scores.heat_score;
+                        this.selectedArticle.engagement_rate = data.scores.engagement_rate;
+                        this.selectedArticle.virality_index = data.scores.virality_index;
+                        this.selectedArticle.content_value_index = data.scores.content_value_index;
+                        this.selectedArticle.is_simulated = data.is_simulated;
+                        showToast('Metrics updated successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Failed to update metrics', 'error');
+                    }
+                } catch (error) {
+                    showToast('Network error updating metrics', 'error');
+                }
+            },
+
+            async summarizeArticle(articleId) {
+                if (!this.selectedArticle) return;
+
+                this.selectedArticle.generating_summary = true;
+                showToast('Gemini is summarizing the article...', 'info');
+
+                try {
+                    const response = await fetch(`/api/articles/${articleId}/summarize`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.selectedArticle.ai_summary = data.ai_summary;
+                        this.selectedArticle.tags = data.tags;
+
+                        // If we are in the "Uncategorized" view (Inbox), remove it from the list
+                        if (this.filters.categorized === '0') {
+                            this.articlesList = this.articlesList.filter(a => a.id !== articleId);
+                            // Keep modal open so user can see the result
+                        } else {
+                            // Just update in local list
+                            const index = this.articlesList.findIndex(a => a.id === articleId);
+                            if (index !== -1) {
+                                this.articlesList[index].ai_summary = data.ai_summary;
+                                this.articlesList[index].tags = data.tags;
+                            }
+                        }
+                        showToast(data.message || 'Summary and tags generated successfully', 'success');
+                    }
+                    else {
+                        showToast(data.message || 'Summarization failed', 'error');
+                    }
+                } catch (error) {
+                    showToast('Network error during summarization', 'error');
+                } finally {
+                    this.selectedArticle.generating_summary = false;
+                }
+            },
+
+            async syncToLark(articleId) {
+                try {
+                    showToast('Syncing to Lark...', 'info');
+                    const response = await fetch(`/api/articles/${articleId}/lark-sync`, { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(data.message || 'Synced successfully', 'success');
+                    } else {
+                        showToast(data.error || 'Sync failed', 'error');
+                    }
+                } catch (error) {
+                    showToast('Network error syncing to Lark', 'error');
+                }
+            },
+
+            formatSummary(summary) {
+                if (!summary) return '';
+                // Simple bullet point formatter if not already HTML
+                if (summary.includes('*') || summary.includes('-')) {
+                    const lines = summary.split('\n');
+                    let html = '<ul class="list-disc pl-5 space-y-1">';
+                    lines.forEach(line => {
+                        const content = line.trim().replace(/^[\*\-]\s*/, '');
+                        if (content) {
+                            html += `<li>${content}</li>`;
+                        }
+                    });
+                    html += '</ul>';
+                    return html;
+                }
+                return summary.replace(/\n/g, '<br>');
+            },
+
+            toggleTag(tag) {
+                if (this.filters.tag === tag) {
+                    this.filters.tag = '';
+                } else {
+                    this.filters.tag = tag;
+                }
+                this.loadArticles();
+            },
+
+            openUrl(url) {
+                window.open(url, '_blank');
+            },
+
+            formatDate(isoString) {
+                if (!isoString) return 'Unknown';
+                const date = new Date(isoString);
+                return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+            },
+
+            resizeIframe(iframe) {
+                try {
+                    // Auto-resize iframe to fit content
+                    const height = iframe.contentWindow.document.body.scrollHeight;
+                    iframe.style.height = height + 'px';
+                } catch (e) {
+                    // Cross-origin error, use default height
+                    console.log('Cannot resize iframe:', e);
+                }
+            },
+
+            downloadPDF(articleId) {
+                showToast('Generating PDF... please wait.', 'info');
+                window.location.href = `/api/articles/${articleId}/pdf`;
+            },
+
+            getTagClass(tag) {
+                const colors = {
+                    'AI & LLM': 'bg-blue-100 text-blue-700 border border-blue-200',
+                    'Tự động hóa': 'bg-green-100 text-green-700 border border-green-200',
+                    'Công cụ & Tiện ích': 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+                    'Lập trình & API': 'bg-gray-100 text-gray-700 border border-gray-200',
+                    'Marketing & Branding': 'bg-pink-100 text-pink-700 border border-pink-200',
+                    'Sáng tạo nội dung': 'bg-orange-100 text-orange-700 border border-orange-200',
+                    'Năng suất & Công việc': 'bg-teal-100 text-teal-700 border border-teal-200',
+                    'Kinh doanh & Khởi nghiệp': 'bg-yellow-100 text-yellow-700 border border-yellow-200',
+                    'Tin tức công nghệ': 'bg-red-100 text-red-700 border border-red-200',
+                    'Hướng dẫn & Thủ thuật': 'bg-purple-100 text-purple-700 border border-purple-200'
+                };
+                return colors[tag] || 'bg-gray-100 text-gray-600 border border-gray-200';
+            }
+        }
+    }
+</script>
+{% endblock %}

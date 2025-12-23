@@ -1,0 +1,7 @@
+﻿2025-12-19 15:46:23 - wewe_client - [32mINFO[0m - WeWe-RSS client initialized: http://localhost:4000
+Fetching feed data...
+2025-12-19 15:46:23 - wewe_client - [32mINFO[0m - Fetching all feeds (format: json)
+
+Total items: 30
+
+=== First Item Structure ===

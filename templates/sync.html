@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Đồng bộ - Hệ thống Quản lý WeChat{% endblock %}
+{% block page_title %}Quản lý đồng bộ{% endblock %}
+
+{% block content %}
+<div x-data="sync()" x-init="loadHistory()">
+
+    <!-- Sync Actions -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Thao tác đồng bộ</h2>
+        <div class="flex gap-4">
+            <button @click="syncAll()" :disabled="syncing"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50">
+                <i class="fas fa-sync mr-2" :class="{ 'fa-spin': syncing }"></i>
+                Đồng bộ tất cả tài khoản
+            </button>
+            <button @click="loadHistory()"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium">
+                <i class="fas fa-redo mr-2"></i>
+                Làm mới
+            </button>
+        </div>
+    </div>
+
+    <!-- Sync History -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">Lịch sử đồng bộ</h2>
+        </div>
+
+        <div x-show="!loading && history.length > 0" class="divide-y">
+            <template x-for="item in history" :key="item.id">
+                <div class="p-6 hover:bg-gray-50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-semibold text-gray-900" x-text="item.account_name"></h3>
+                                <span :class="{
+                                    'bg-green-100 text-green-800': item.status === 'success',
+                                    'bg-red-100 text-red-800': item.status === 'failed',
+                                    'bg-yellow-100 text-yellow-800': item.status === 'partial'
+                                }" class="px-2 py-1 text-xs rounded-full" x-text="item.status"></span>
+                                <span class="text-xs text-gray-500" x-text="item.sync_type"></span>
+                            </div>
+
+                            <div class="flex items-center gap-6 text-sm text-gray-600">
+                                <span><i class="fas fa-plus-circle text-green-600 mr-1"></i><span
+                                        x-text="item.articles_new"></span> mới</span>
+                                <span><i class="fas fa-edit text-blue-600 mr-1"></i><span
+                                        x-text="item.articles_updated"></span> cập nhật</span>
+                                <span x-show="item.articles_failed > 0"><i
+                                        class="fas fa-exclamation-circle text-red-600 mr-1"></i><span
+                                        x-text="item.articles_failed"></span> lỗi</span>
+                                <span><i class="fas fa-clock mr-1"></i><span x-text="item.duration_seconds"></span>
+                                    giây</span>
+                            </div>
+                        </div>
+
+                        <div class="text-right text-sm text-gray-500">
+                            <p x-text="formatTime(item.started_at)"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div x-show="loading" class="p-12 text-center">
+            <i class="fas fa-spinner fa-spin text-gray-400 text-3xl"></i>
+            <p class="text-gray-600 mt-4">Đang tải lịch sử...</p>
+        </div>
+
+        <div x-show="!loading && history.length === 0" class="p-12 text-center">
+            <i class="fas fa-history text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-600">Chưa có lịch sử đồng bộ</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function sync() {
+        return {
+            history: [],
+            loading: true,
+            syncing: false,
+
+            async loadHistory() {
+                this.loading = true;
+                try {
+                    const response = await fetch('/api/sync/history?limit=50');
+                    const data = await response.json();
+                    if (data.success) {
+                        this.history = data.history;
+                    }
+                } catch (error) {
+                    console.error('Failed to load history:', error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async syncAll() {
+                if (!confirm('Sync all accounts? This may take a while.')) return;
+
+                this.syncing = true;
+                try {
+                    showToast('Starting sync...', 'info');
+                    const response = await fetch('/api/sync/all', { method: 'POST' });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast(`Đã đồng bộ ${data.total_new} bài viết mới!`, 'success');
+                        this.loadHistory();
+                    } else {
+                        showToast(data.error || 'Đồng bộ thất bại', 'error');
+                    }
+                } catch (error) {
+                    showToast('Sync failed', 'error');
+                } finally {
+                    this.syncing = false;
+                }
+            },
+
+            formatTime(isoString) {
+                const date = new Date(isoString);
+                return date.toLocaleString('zh-CN');
+            }
+        }
+    }
+</script>
+{% endblock %}

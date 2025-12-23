@@ -1,0 +1,21 @@
+Recent Errors/Warnings:
+2025-12-22 09:03:20 - database - [31mERROR[0m - Database session error: (sqlite3.IntegrityError) UNIQUE constraint failed: articles.url
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-12-22 09:03:31 - database - [31mERROR[0m - Database session error: 'charmap' codec can't encode characters in position 11-27: character maps to <undefined>
+2025-12-22 09:04:56 - database - [31mERROR[0m - Database session error: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:04:56 - sync_manager - [31mERROR[0m - Failed to process entry: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:02 - sync_manager - [32mINFO[0m - Sync completed for MP_WXS_2394281674: 0 new, 0 updated, 9 skipped, 1 failed
+2025-12-22 09:05:02 - database - [31mERROR[0m - Database session error: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:02 - sync_manager - [31mERROR[0m - Failed to process entry: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:18 - database - [31mERROR[0m - Database session error: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:18 - sync_manager - [31mERROR[0m - Failed to process entry: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:26 - database - [31mERROR[0m - Database session error: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:26 - sync_manager - [31mERROR[0m - Failed to process entry: 'videos' is an invalid keyword argument for Article
+2025-12-22 09:05:44 - sync_manager - [32mINFO[0m - Sync completed for all: 0 new, 0 updated, 27 skipped, 3 failed
+2025-12-22 09:05:44 - sync_manager - [32mINFO[0m - Sync all completed: 2 accounts, 0 new articles, 0 updated, 4 failed
+2025-12-22 09:08:30 - sync_manager - [32mINFO[0m - Sync completed for MP_WXS_2394281674: 1 new, 0 updated, 9 skipped, 0 failed
+2025-12-22 09:09:11 - sync_manager - [32mINFO[0m - Sync completed for all: 2 new, 0 updated, 28 skipped, 0 failed
+2025-12-22 09:09:11 - sync_manager - [32mINFO[0m - Sync all completed: 2 accounts, 3 new articles, 0 updated, 0 failed
+2025-12-22 09:11:50 - sync_manager - [32mINFO[0m - Sync completed for MP_WXS_2394281674: 0 new, 0 updated, 10 skipped, 0 failed
+2025-12-22 09:12:31 - sync_manager - [32mINFO[0m - Sync completed for all: 0 new, 0 updated, 30 skipped, 0 failed
+2025-12-22 09:12:31 - sync_manager - [32mINFO[0m - Sync all completed: 2 accounts, 0 new articles, 0 updated, 0 failed
