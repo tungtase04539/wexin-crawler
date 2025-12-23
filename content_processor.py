@@ -159,7 +159,7 @@ class ContentProcessor:
             return ""
         
         try:
-            soup = BeautifulSoup(html, 'lxml')
+            soup = BeautifulSoup(html, 'html.parser')
             
             # Remove script and style elements
             for element in soup(['script', 'style', 'iframe', 'noscript']):
@@ -193,7 +193,7 @@ class ContentProcessor:
             return {"cover": None, "all": []}
         
         try:
-            soup = BeautifulSoup(html, 'lxml')
+            soup = BeautifulSoup(html, 'html.parser')
             img_tags = soup.find_all('img')
             
             images = []
@@ -344,7 +344,7 @@ class ContentProcessor:
             return html
         
         try:
-            soup = BeautifulSoup(html, 'lxml')
+            soup = BeautifulSoup(html, 'html.parser')
             
             # Remove unwanted elements
             for element in soup(['script', 'style', 'iframe', 'noscript']):
