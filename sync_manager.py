@@ -1,6 +1,7 @@
 """
 Sync manager for orchestrating content synchronization
 """
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
