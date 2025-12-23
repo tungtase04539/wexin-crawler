@@ -25,7 +25,7 @@ class Database:
         Args:
             database_url: Database connection URL (uses settings if not provided)
         """
-        self.database_url = database_url or settings.database_url
+        self.database_url = database_url or settings.final_database_url
         
         # Create engine
         self.engine = create_engine(

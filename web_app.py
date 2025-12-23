@@ -23,7 +23,9 @@ app.config['SECRET_KEY'] = 'wewe-rss-integration-secret-key'
 app.config['JSON_AS_ASCII'] = False  # Support Chinese characters
 
 # Initialize database
-db.create_tables()
+# Database tables will be created on first request or in main block
+# if not db.inspector.get_table_names():
+#    db.create_tables()
 
 
 # ============================================================================

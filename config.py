@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     # Database Configuration
     database_url: str = "sqlite:///data/articles.db"
     
+    @property
+    def final_database_url(self) -> str:
+        """Get effective database URL with Vercel fallback"""
+        # If env var triggers default, we might need to patch it for Vercel
+        # But Pydantic loads .env first. 
+        # If we are on Vercel and URL is sqlite file in read-only dir, switch to tmp
+        url = self.database_url
+        if self.is_vercel and "sqlite" in url and "data/" in url and "/tmp" not in url:
+            return "sqlite:////tmp/articles.db"
+        return url
+    
     # Sync Configuration
     sync_interval_minutes: int = 30
     max_articles_per_sync: int = 100
