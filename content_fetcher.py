@@ -148,17 +148,32 @@ class ContentFetcher:
         # Process video iframes and video_iframe spans
         # WeChat often uses a span with class "video_iframe" as a placeholder
         for span in content_div.find_all('span', class_='video_iframe'):
+            # First try to get the original data-src which is usually the correct player URL
+            original_src = span.get('data-src')
             vid = span.get('vid') or span.get('data-mpvid')
-            if vid:
-                # Create a proper player iframe
+
+            if original_src:
+                 # Use the original source (readtemplate) as it's the most reliable
+                 player_url = urljoin(base_url, original_src)
+            elif vid:
+                # Fallback to constructing player URL if no src available
                 player_url = f"https://mp.weixin.qq.com/mp/videoplayer?vid={vid}&auto=0"
-                iframe = soup.new_tag('iframe')
-                iframe['src'] = player_url
-                iframe['class'] = 'video_iframe'
-                iframe['style'] = 'width: 100%; height: 250px; border:0; margin: 10px 0;'
-                iframe['referrerpolicy'] = 'no-referrer'
-                iframe['allowfullscreen'] = 'true'
-                span.replace_with(iframe)
+            else:
+                continue
+
+            # Create a proper player iframe
+            iframe = soup.new_tag('iframe')
+            iframe['src'] = player_url
+            iframe['class'] = 'video_iframe'
+            iframe['style'] = 'width: 100%; height: 250px; border:0; margin: 10px 0;'
+            iframe['referrerpolicy'] = 'no-referrer'
+            iframe['allowfullscreen'] = 'true'
+            
+            # Preserve vid attribute for potential future use
+            if vid:
+                iframe['data-vid'] = vid
+                
+            span.replace_with(iframe)
 
         for iframe in content_div.find_all('iframe'):
             # WeChat uses data-src for iframes too
@@ -304,14 +319,21 @@ class ContentFetcher:
         # 1. Look for WeChat's specific video_iframe spans
         for span in element.find_all('span', class_='video_iframe'):
             vid = span.get('vid') or span.get('data-mpvid')
-            if vid:
+            data_src = span.get('data-src')
+            
+            if data_src:
+                player_url = urljoin(base_url, data_src)
+            elif vid:
                 player_url = f"https://mp.weixin.qq.com/mp/videoplayer?vid={vid}&auto=0"
-                videos.append({
-                    'url': player_url,
-                    'poster': '',
-                    'type': 'wechat_vid',
-                    'vid': vid
-                })
+            else:
+                continue
+                
+            videos.append({
+                'url': player_url,
+                'poster': '',
+                'type': 'wechat_vid',
+                'vid': vid
+            })
 
         # 2. Look for video tags
         for video in element.find_all('video'):
