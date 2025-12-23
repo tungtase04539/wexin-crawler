@@ -260,12 +260,13 @@ class Database:
                 select(func.count()).select_from(Account).where(Account.is_active == True)
             )
             
+            from sqlalchemy import cast, String
             uncategorized_count = session.scalar(
                 select(func.count()).select_from(Article).where(
                     or_(
                         Article.tags.is_(None),
-                        Article.tags == '[]',
-                        Article.tags == 'null'
+                        cast(Article.tags, String) == '[]',
+                        cast(Article.tags, String) == 'null'
                     )
                 )
             )

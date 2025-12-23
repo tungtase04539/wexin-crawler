@@ -306,20 +306,22 @@ def api_articles():
                     Article.summary.ilike(f"%{search}%")
                 ))
             if tag:
-                filters.append(Article.tags.like(f'%"%s"%' % tag))
+                from sqlalchemy import cast, String
+                filters.append(cast(Article.tags, String).like(f'%"%s"%' % tag))
             
             if categorized is not None:
+                from sqlalchemy import cast, String
                 if categorized == 1:
                     filters.append(and_(
                         Article.tags.is_not(None), 
-                        Article.tags != '[]',
-                        Article.tags != 'null'
+                        cast(Article.tags, String) != '[]',
+                        cast(Article.tags, String) != 'null'
                     ))
                 else:  # categorized == 0
                     filters.append(or_(
                         Article.tags.is_(None),
-                        Article.tags == '[]',
-                        Article.tags == 'null'
+                        cast(Article.tags, String) == '[]',
+                        cast(Article.tags, String) == 'null'
                     ))
             
             # Map levels to ranges
