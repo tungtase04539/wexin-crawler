@@ -33,12 +33,29 @@ class ContentProcessor:
         # Extract basic fields
         title = self._clean_text(entry.get("title", ""))
         
-        # Handle author being dict or string
+        # Handle author being dict, string or list (JSON Feed format)
         author = entry.get("author", "")
+        authors = entry.get("authors", [])
+        
+        if authors and isinstance(authors, list):
+            # Extract names from authors list
+            author_names = []
+            for a in authors:
+                if isinstance(a, dict):
+                    author_names.append(a.get("name", "Unknown"))
+                elif isinstance(a, str):
+                    author_names.append(a)
+            if author_names:
+                author = ", ".join(author_names)
+        
         if isinstance(author, dict):
             author = author.get("name", "Unknown")
         elif not isinstance(author, str):
             author = str(author) if author else ""
+        
+        if not author or author.lower() == "unknown":
+            # Try to get from feed_item level directly
+            author = entry.get("author_name", author)
         
         # Handle URL - JSON feed uses 'url', RSS uses 'link'
         url = entry.get("url", "") or entry.get("link", "")
@@ -100,8 +117,10 @@ class ContentProcessor:
             cover_image = images_data["cover"]
             images_list = images_data["all"]
         else:
-            # Use first fetched image as cover
-            cover_image = images_list[0]['url'] if images_list else None
+            # Use fallback image from entry if available (JSON Feed standard 'image')
+            cover_image = entry.get("image", None)
+            if not cover_image:
+                cover_image = images_list[0]['url'] if images_list else None
         
         # Parse published date
         date_str = (
