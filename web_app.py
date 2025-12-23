@@ -87,7 +87,7 @@ def api_stats():
         
         # Get recent sync
         latest_sync = db.get_latest_sync()
-        last_sync_time = latest_sync.started_at.isoformat() if latest_sync else None
+        last_sync_time = latest_sync.started_at.isoformat() + 'Z' if latest_sync else None
         
         # Get recent articles count (last 24h)
         recent_articles = db.get_recent_articles(limit=1000)
@@ -130,9 +130,9 @@ def api_accounts():
                 'avatar_url': account.avatar_url,
                 'is_active': account.is_active,
                 'articles_count': articles_count,
-                'created_at': account.created_at.isoformat(),
-                'updated_at': account.updated_at.isoformat(),
-                'last_sync': latest_sync.started_at.isoformat() if latest_sync else None,
+                'created_at': account.created_at.isoformat() + 'Z',
+                'updated_at': account.updated_at.isoformat() + 'Z',
+                'last_sync': latest_sync.started_at.isoformat() + 'Z' if latest_sync else None,
                 'last_sync_status': latest_sync.status if latest_sync else None
             })
         
@@ -374,12 +374,12 @@ def api_articles():
                     'ai_summary': article.ai_summary,
                     'tags': article.tags,
                     'cover_image': article.cover_image,
-                    'published_at': article.published_at.isoformat() if article.published_at else None,
+                    'published_at': article.published_at.isoformat() + 'Z' if article.published_at else None,
                     'word_count': article.word_count,
                     'reading_time_minutes': article.reading_time_minutes,
                     'is_read': article.is_read,
                     'is_favorite': article.is_favorite,
-                    'created_at': article.created_at.isoformat(),
+                    'created_at': article.created_at.isoformat() + 'Z',
                     # Include scores for the list view
                     'heat_score': round(article.heat_score or 0, 1),
                     'engagement_rate': round(article.engagement_rate or 0, 1),
@@ -428,10 +428,10 @@ def api_article_detail(article_id):
                     'tags': article.tags,
                     'cover_image': article.cover_image,
                     'images': article.images,
-                    'published_at': article.published_at.isoformat() if article.published_at else None,
+                    'published_at': article.published_at.isoformat() + 'Z' if article.published_at else None,
                     'word_count': article.word_count,
                     'reading_time_minutes': article.reading_time_minutes,
-                    'created_at': article.created_at.isoformat(),
+                    'created_at': article.created_at.isoformat() + 'Z',
                     # Metrics & Scores
                     'read_count': article.read_count or 0,
                     'like_count': article.like_count or 0,
@@ -445,7 +445,7 @@ def api_article_detail(article_id):
                     'heat_score': round(article.heat_score or 0, 2),
                     'is_simulated': article.is_simulated,
                     'has_api_key': bool(settings.jizhile_api_key),
-                    'metrics_updated_at': article.metrics_updated_at.isoformat() if article.metrics_updated_at else None
+                    'metrics_updated_at': article.metrics_updated_at.isoformat() + 'Z' if article.metrics_updated_at else None
                 }
             })
     except Exception as e:
