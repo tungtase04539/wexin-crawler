@@ -92,24 +92,30 @@ class SyncManager:
             
             def process_wrapper(entry):
                 try:
-                    # Process entry
+                    # OPTIMIZATION: Check if article already exists BEFORE expensive content processing
+                    # We can use the link from the feed entry
+                    article_link = entry.get('url') or entry.get('link')
+                    if not article_link:
+                        logger.warning(f"Could not find URL for entry: {entry.get('title', 'Unknown Title')}")
+                        with stats_lock:
+                            stats["failed"] += 1
+                        return
+                    existing_article = db.get_article_by_url(article_link)
+                    
+                    if existing_article and not full_sync:
+                        with stats_lock:
+                            stats["skipped"] += 1
+                        return
+
+                    # Process entry (expensive network/parsing task)
                     article_data = content_processor.process_article(entry)
                     
                     # Ensure author fallback to account name if still unknown
                     if not article_data.get("author") or article_data["author"].lower() == "unknown":
                         article_data["author"] = account_name
                     
-                    # Check if article already exists
-                    existing_article = db.get_article_by_url(article_data["url"])
-                    
                     if existing_article:
-                        # Skip if not full sync
-                        if not full_sync:
-                            with stats_lock:
-                                stats["skipped"] += 1
-                            return
-                        
-                        # Update existing article if full_sync is enabled
+                        # Update existing article if full_sync is enabled (we already checked not full_sync above)
                         db.update_article(existing_article.id, **article_data)
                         article_id = existing_article.id
                         with stats_lock:
@@ -295,7 +301,7 @@ class SyncManager:
         
         # Perform initial sync if requested
         if initial_sync:
-            sync_result = self.sync_account(feed_id, sync_type="manual", full_sync=True)
+            sync_result = self.sync_account(feed_id, sync_type="manual", full_sync=False)
             return {
                 "success": True,
                 "account": account.name,

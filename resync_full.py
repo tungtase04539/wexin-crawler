@@ -14,7 +14,7 @@ print()
 start_time = time.time()
 
 # Sync the "all" feed with full content
-result = sync_manager.sync_account('all', 'manual', full_sync=True)
+result = sync_manager.sync_account('all', 'manual', full_sync=False)
 
 elapsed = time.time() - start_time
 

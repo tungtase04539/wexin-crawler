@@ -1,7 +1,7 @@
 from sync_manager import sync_manager
 
 print("Testing sync...")
-result = sync_manager.sync_account('all', 'manual', True)
+result = sync_manager.sync_account('all', 'manual', False)
 
 if result['success']:
     print(f"✓ Success!")

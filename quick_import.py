@@ -84,7 +84,7 @@ def quick_import():
     result = sync_manager.sync_account(
         feed_id="all",
         sync_type="manual",
-        full_sync=True
+        full_sync=False
     )
     
     if result.get('success'):
